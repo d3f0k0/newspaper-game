@@ -7,7 +7,7 @@
     label?: string;
     userInput?: string;
     isSelected: boolean;
-    isHighlighted: boolean;
+    highlightState: 'none' | 'main' | 'related';  // Changed from isHighlighted
     type?: number;
     onClick: () => void;
   }
@@ -20,7 +20,7 @@
     label,
     userInput = '',
     isSelected,
-    isHighlighted, 
+    highlightState = 'none',
     type,
     onClick
   } = $props();
@@ -29,7 +29,8 @@
     'cell',
     !type ? 'cell-empty' : '',
     isSelected ? 'cell-selected' : '',
-    isHighlighted ? 'cell-highlighted' : ''
+    highlightState === 'main' ? 'cell-highlighted' : '',
+    highlightState === 'related' ? 'cell-related' : ''
   ].filter(Boolean).join(' '));
 
   function handleClick() {
@@ -110,7 +111,14 @@
   .cell-highlighted {
     fill: #a7d8ff;
     &.cell-selected {
-        fill: #ffda00;
+      fill: #ffda00;
+    }
+  }
+
+  .cell-related {
+    fill: #ffeca0;
+    &.cell-selected {
+      fill: #ffda00;
     }
   }
 

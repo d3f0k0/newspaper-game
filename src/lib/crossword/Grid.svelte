@@ -1,25 +1,19 @@
 <script lang="ts">
   import Cell from './Cell.svelte';
+  import type { ClueList, PuzzleData } from '../types';
   
+  // Update Props interface to include proper typing for puzzle
   interface Props {
-    n: number;
     strokeWidth?: number;
     borderWidth?: number;
-    puzzle?: {
-      board: {
-        cells: any[];
-        clueLists: ClueList[];
-      }[];
-    };
+    puzzle?: PuzzleData;
   }
 
-  interface ClueList {
-    id: number;
-    clues: number[];
-    name: string;
-  }
+  let { strokeWidth = 1, borderWidth = 3, puzzle }: Props = $props();
 
-  let { n = 5, strokeWidth = 1, borderWidth = 3, puzzle }: Props = $props();
+  // Use dimensions from puzzle data
+  let width = $derived(puzzle?.board[0].dimensions.width || 5);
+  let height = $derived(puzzle?.board[0].dimensions.height || 5);
 
   interface CellData {
     id: number;
@@ -32,16 +26,15 @@
     userInput?: string;
   }
 
-  let cellSize = $derived(Math.floor(500 / n));
-  let gridSize = $derived(n * cellSize + 2 * borderWidth);
+  let cellSize = $derived(Math.floor(500 / Math.max(width, height)));
+  let gridWidth = $derived(width * cellSize + 2 * borderWidth);
+  let gridHeight = $derived(height * cellSize + 2 * borderWidth);
   let cells = $state(generateInitialCells());
   let selectedCell = $state<CellData | null>(null);
   let highlightMode = $state<"row" | "column">("row");
 
-  // Update the effect to set initial selection and mode
   $effect(() => {
     if (!selectedCell) {
-      // Find first valid cell (type 1)
       const firstValidCell = cells.find(cell => cell.type === 1);
       selectedCell = firstValidCell || cells[0];
       highlightMode = "row";
@@ -50,10 +43,10 @@
 
   function generateInitialCells(): CellData[] {
     if (puzzle) {
-      return puzzle.board[0].cells.map((cellData: any, i: number) => ({
+      return puzzle.board[0].cells.map((cellData, i: number) => ({
         id: i,
-        row: Math.floor(i / n),
-        col: i % n,
+        row: Math.floor(i / width),
+        col: i % width,
         answer: cellData.answer || '',
         type: cellData.type,
         clues: cellData.clues || [],
@@ -61,10 +54,10 @@
         userInput: ''
       }));
     }
-    return Array.from({ length: n * n }, (_, i) => ({
+    return Array.from({ length: width * height }, (_, i) => ({
       id: i,
-      row: Math.floor(i / n),
-      col: i % n,
+      row: Math.floor(i / width),
+      col: i % width,
       answer: '',
       clues: [],
       userInput: ''
@@ -115,11 +108,11 @@
       let nextIndex: number;
 
       if (highlightMode === "row") {
-        const nextCol = (selectedCell.col + 1) % n;
-        nextIndex = selectedCell.row * n + nextCol;
+        const nextCol = (selectedCell.col + 1) % width;
+        nextIndex = selectedCell.row * width + nextCol;
       } else {
-        const nextRow = (selectedCell.row + 1) % n;
-        nextIndex = nextRow * n + selectedCell.col;
+        const nextRow = (selectedCell.row + 1) % height;
+        nextIndex = nextRow * width + selectedCell.col;
       }
 
       selectedCell = cells[nextIndex];
@@ -129,42 +122,86 @@
   function generateGridPath(): string {
     const path = [];
 
-    for (let i = 1; i < n; i++) {
+    // Vertical lines
+    for (let i = 1; i < width; i++) {
       const x = Math.floor(i * cellSize) + borderWidth;
-      path.push(`M ${x} ${borderWidth} V ${gridSize - borderWidth}`);
+      path.push(`M ${x} ${borderWidth} V ${gridHeight - borderWidth}`);
     }
 
-    for (let i = 1; i < n; i++) {
+    // Horizontal lines
+    for (let i = 1; i < height; i++) {
       const y = Math.floor(i * cellSize) + borderWidth;
-      path.push(`M ${borderWidth} ${y} H ${gridSize - borderWidth}`);
+      path.push(`M ${borderWidth} ${y} H ${gridWidth - borderWidth}`);
     }
 
     return path.join(" ");
   }
 
-  function isHighlighted(cell: CellData): boolean {
-    if (!selectedCell || !puzzle) return false;
-  
-    const selectedClueNumber = selectedCell.clues.find(clueNum => {
-      const clueList = puzzle.board[0].clueLists.find(list => 
-        list.name === (highlightMode === "row" ? "Across" : "Down")
-      );
-      return clueList?.clues.includes(clueNum);
-    });
-  
-    // Include check for 0 since 0 is a valid clue number
-    if (selectedClueNumber === undefined) return false;
-  
-    return cell.clues.includes(selectedClueNumber);
+  function getCurrentDirection(): "Across" | "Down" {
+    return highlightMode === "row" ? "Across" : "Down";
   }
+
+  function findClueList(direction: "Across" | "Down"): ClueList | undefined {
+    return puzzle?.board[0].clueLists.find(list => list.name === direction);
+  }
+
+  function findSelectedClueNumber(): number | undefined {
+    if (!selectedCell) return undefined;
+    
+    const direction = getCurrentDirection();
+    const clueList = findClueList(direction);
+    
+    return selectedCell.clues.find(clueNum => 
+      clueList?.clues.includes(clueNum)
+    );
+  }
+
+  function getHighlightState(cell: CellData): 'none' | 'main' | 'related' {
+    if (!selectedCell || !puzzle) return 'none';
+
+    const selectedClueNumber = findSelectedClueNumber();
+    if (selectedClueNumber === undefined) return 'none';
+
+    // Check if cell is part of main clue
+    if (cell.clues.includes(selectedClueNumber)) {
+        return 'main';
+    }
+
+    // Find the current clue
+    const direction = getCurrentDirection();
+    const selectedClueIndex = puzzle.board[0].clues.findIndex(clue => 
+        clue.cells.includes(selectedCell.id) && 
+        clue.direction === direction
+    );
+
+    if (selectedClueIndex === -1) return 'none';
+
+    const selectedClue = puzzle.board[0].clues[selectedClueIndex];
+
+    // Check for related clues using array indices
+    if (selectedClue?.relatives) {
+        // Look for cells that are part of any relative clue
+        const isRelated = selectedClue.relatives.some(relativeIndex => {
+            const relativeClue = puzzle.board[0].clues[relativeIndex];
+            return relativeClue?.cells.includes(cell.id);
+        });
+
+        if (isRelated) {
+            return 'related';
+        }
+    }
+
+    return 'none';
+}
 </script>
 
 <svelte:window onkeydown={handleKeydown} />
 
 <div class="grid-container">
   <svg
-
-    viewBox="0 0 {gridSize} {gridSize}"
+    width = 600
+    height = 600
+    viewBox="0 0 {gridWidth} {gridHeight}"
     xmlns="http://www.w3.org/2000/svg"
   >
     <g class="cells">
@@ -177,25 +214,23 @@
           label={cell.label}
           userInput={cell.userInput}
           isSelected={selectedCell?.id === cell.id}
-          isHighlighted={isHighlighted(cell)}
+          highlightState={getHighlightState(cell)}
           type={cell.type}
           onClick={() => handleClick(cell)}
         />
       {/each}
     </g>
     <g class="grid">
-      <!-- Draw grid lines using single path -->
       <path
         d={generateGridPath()}
         stroke="dimgray"
         vector-effect="non-scaling-stroke"
       />
-      <!-- Draw border rectangle -->
       <rect
         x={borderWidth / 2}
         y={borderWidth / 2}
-        width={gridSize - borderWidth}
-        height={gridSize - borderWidth}
+        width={gridWidth - borderWidth}
+        height={gridHeight - borderWidth}
         fill="none"
         stroke="black"
         stroke-width={borderWidth}
