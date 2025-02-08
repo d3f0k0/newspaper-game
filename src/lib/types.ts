@@ -7,17 +7,19 @@ export interface PuzzleData {
             label?: string;
         }>;
         clueLists: ClueList[];
-        clues: Array<{
-            cells: number[];
-            direction: "Across" | "Down";
-            label: string;
-            relatives?: number[];
-        }>;
+        clues: Clue[];
         dimensions: {
             width: number;
             height: number;
         };
     }[];
+}
+
+export interface Clue {
+    cells: number[];
+    direction: "Across" | "Down";
+    label: string;
+    relatives?: number[];
 }
 
 // Update ClueList interface

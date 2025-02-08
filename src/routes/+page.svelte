@@ -1,7 +1,7 @@
 <script lang="ts">
     import { onMount } from 'svelte';
-    import Grid from '$lib/crossword/Grid.svelte';
     import type { PuzzleData } from '$lib/types';
+    import Crossword from '$lib/crossword/Crossword.svelte';
     
     let puzzle: PuzzleData;
     let isLoaded = false;
@@ -14,7 +14,7 @@
 </script>
 
 {#if isLoaded}
-    <Grid strokeWidth={1} puzzle={puzzle} />
+    <Crossword puzzle={puzzle} />
 {:else}
     <p>Loading...</p>
 {/if}
