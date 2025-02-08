@@ -170,7 +170,7 @@
     // Find the current clue
     const direction = getCurrentDirection();
     const selectedClueIndex = puzzle.board[0].clues.findIndex(clue => 
-        clue.cells.includes(selectedCell.id) && 
+        selectedCell && clue.cells.includes(selectedCell.id) && 
         clue.direction === direction
     );
 
