@@ -19,6 +19,9 @@ export interface Clue {
     cells: number[];
     direction: "Across" | "Down";
     label: string;
+    text: Array<{
+        plain: string
+    }>
     relatives?: number[];
 }
 

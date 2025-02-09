@@ -2,6 +2,7 @@
   import Cell from './Cell.svelte';
   import type { PuzzleData } from '../types';
   import { type CellData, puzzle } from './puzzle.svelte';
+  import { control } from './control.svelte';
   
   interface Props {
     strokeWidth?: number;
@@ -19,6 +20,8 @@
   let gridWidth = $derived(puzzle.width * cellSize + 2 * borderWidth);
   let gridHeight = $derived(puzzle.height * cellSize + 2 * borderWidth);
 
+  //debug
+  let clues = $derived(puzzle.selectedClue?.text[0].plain)
   function handleClick(cell: CellData) {
     if (puzzle.selectedCell.id === cell.id) {
       // Only switch mode if cell has both across and down clues
@@ -51,7 +54,7 @@
   function handleKeydown(event: KeyboardEvent) {
     if (!puzzle.selectedCell) return;
     event.preventDefault();
-    puzzle.handleKeyInput(event.key);
+    control.handleKeyInput(event.key);
   }
 
   function generateGridPath(): string {
@@ -76,6 +79,7 @@
 <svelte:window onkeydown={handleKeydown} />
 
 <div class="grid-container">
+  <p>{clues}</p>
   <svg
     width={600}
     height={600}
