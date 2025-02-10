@@ -1,3 +1,4 @@
+import { updated } from "$app/state";
 import type { PuzzleData, Clue } from "$lib/types";
 
 export interface CellData {
@@ -54,6 +55,7 @@ class Puzzle {
             : undefined;
     });
 }
+
 const puzzle = new Puzzle()
 export { puzzle }
 

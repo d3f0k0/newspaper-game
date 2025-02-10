@@ -20,7 +20,8 @@ export interface Clue {
     direction: "Across" | "Down";
     label: string;
     text: Array<{
-        plain: string
+        plain: string,
+        formatted?: string
     }>
     relatives?: number[];
 }

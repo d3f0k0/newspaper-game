@@ -5,12 +5,11 @@
   import { control } from './control.svelte';
   
   interface Props {
-    strokeWidth?: number;
     borderWidth?: number;
     puzzleData?: PuzzleData;
   }
 
-  let { strokeWidth = 1, borderWidth = 3, puzzleData }: Props = $props();
+  let { borderWidth = 3, puzzleData }: Props = $props();
 
   $effect(() => {
     puzzle.updatePuzzle(puzzleData);
@@ -20,8 +19,9 @@
   let gridWidth = $derived(puzzle.width * cellSize + 2 * borderWidth);
   let gridHeight = $derived(puzzle.height * cellSize + 2 * borderWidth);
 
-  //debug
-  let clues = $derived(puzzle.selectedClue?.text[0].plain)
+  console.log(puzzle.selectedClue)
+
+  // Click on cell
   function handleClick(cell: CellData) {
     if (puzzle.selectedCell.id === cell.id) {
       // Only switch mode if cell has both across and down clues
@@ -57,6 +57,24 @@
     control.handleKeyInput(event.key);
   }
 
+  function getRelated(cellID : number): boolean {
+        // Check for related clues using array indices
+    if (puzzle.selectedClue?.relatives) {
+        // Look for cells that are part of any relative clue
+      const isRelated = puzzle.selectedClue.relatives.some(relativeIndex => {
+          const relativeClue = puzzle.puzzleData?.board[0].clues[relativeIndex];
+          return relativeClue?.cells.includes(cellID);
+      });
+      if (isRelated) {
+          return true;
+      } else {
+        return false
+      }
+  } else {
+    return false
+  }
+}
+
   function generateGridPath(): string {
     const path = [];
 
@@ -79,7 +97,6 @@
 <svelte:window onkeydown={handleKeydown} />
 
 <div class="grid-container">
-  <p>{clues}</p>
   <svg
     width={600}
     height={600}
@@ -96,7 +113,8 @@
           label={cell.label}
           userInput={cell.userInput}
           isSelected={puzzle.selectedCell?.id === cell.id}
-          highlightState={puzzle.selectedClue?.cells.includes(cell.id) ? 'main' : 'none'}
+          isHighlighted={(puzzle.selectedClue?.cells.includes(cell.id)) ? true : false }
+          isRelated={getRelated(cell.id)}
           type={cell.type}
           onClick={() => handleClick(cell)}
         />

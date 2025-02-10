@@ -5,4 +5,4 @@
 
 
 
-<Grid strokeWidth={1} puzzleData={puzzle} />
+<Grid puzzleData={puzzle} />
